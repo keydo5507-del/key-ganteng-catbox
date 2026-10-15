@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Key Uploader</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;background:#0b0f1a;color:#f1f5f9;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .box{width:100%;max-width:420px;background:#121826;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px;text-align:center}
+    h1{font-size:1.45rem;margin-bottom:6px}
+    p{color:#94a3b8;font-size:.9rem;margin-bottom:22px}
+    .drop{border:2px dashed #7c5cff66;border-radius:14px;padding:32px 16px;cursor:pointer;transition:.2s;background:#7c5cff0a}
+    .drop:hover,.drop.over{border-color:#7c5cff;background:#7c5cff1a}
+    .drop svg{width:42px;height:42px;margin-bottom:10px;color:#7c5cff}
+    #file{display:none}
+    .name{display:none;margin:14px 0 0;font-size:.88rem;color:#c4b5fd}
+    .btn{margin-top:18px;width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,#7c5cff,#5b8cff);color:#fff;font-weight:600;font-size:.95rem;cursor:pointer}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .result{display:none;margin-top:18px;padding:14px;background:#22c55e15;border:1px solid #22c55e44;border-radius:12px;text-align:left}
+    .result a{color:#86efac;word-break:break-all;font-size:.85rem;text-decoration:none}
+    .copy{margin-top:10px;width:100%;padding:9px;border:1px solid #22c55e55;background:0;color:#86efac;border-radius:10px;cursor:pointer;font-size:.85rem}
+    .err{display:none;margin-top:14px;padding:12px;background:#ef444420;border:1px solid #ef444455;border-radius:12px;color:#fca5a5;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Key Uploader</h1>
+    <p>Upload file → dapat link langsung</p>
+
+    <div class="drop" id="drop">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+      <div>Klik atau tarik file</div>
+      <div style="font-size:.8rem;margin-top:4px;opacity:.7">Maks 200 MB</div>
+    </div>
+
+    <input type="file" id="file">
+    <div class="name" id="name"></div>
+    <button class="btn" id="btn" disabled>Upload</button>
+
+    <div class="result" id="result">
+      <div style="color:#22c55e;font-weight:600;margin-bottom:8px;font-size:.9rem">✅ Berhasil</div>
+      <a id="link" href="#" target="_blank"></a>
+      <button class="copy" id="copy">Salin Link</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <script>
+    const drop=document.getElementById('drop'),file=document.getElementById('file'),btn=document.getElementById('btn'),
+          name=document.getElementById('name'),result=document.getElementById('result'),link=document.getElementById('link'),
+          copy=document.getElementById('copy'),err=document.getElementById('err');
+    let f=null;
+
+    drop.onclick=()=>file.click();
+    drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};
+    drop.ondragleave=()=>drop.classList.remove('over');
+    drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])set(e.dataTransfer.files[0])};
+    file.onchange=()=>{if(file.files[0])set(file.files[0])};
+
+    function set(fileObj){
+      f=fileObj;
+      name.style.display='block';
+      name.textContent=`📎 \( {fileObj.name} ( \){(fileObj.size/1024/1024).toFixed(2)} MB)`;
+      btn.disabled=false;
+      result.style.display='none';
+      err.style.display='none';
+    }
+
+    btn.onclick=async()=>{
+      if(!f)return;
+      btn.disabled=true;btn.textContent='Mengupload...';
+      result.style.display='none';err.style.display='none';
+      const fd=new FormData();fd.append('file',f);
+      try{
+        const r=await fetch('/api/upload',{method:'POST',body:fd});
+        const d=await r.json();
+        if(!d.success)throw new Error(d.error||'Gagal');
+        link.href=d.url;link.textContent=d.url;
+        result.style.display='block';
+      }catch(e){
+        err.textContent='❌ '+e.message;err.style.display='block';
+      }finally{
+        btn.disabled=false;btn.textContent='Upload';
+      }
+    };
+
+    copy.onclick=async()=>{
+      try{await navigator.clipboard.writeText(link.href);copy.textContent='Tersalin!';setTimeout(()=>copy.textContent='Salin Link',1200)}
+      catch(e){copy.textContent='Gagal'}
+    };
+  </script>
+</body>
+  </html>
